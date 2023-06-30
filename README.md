@@ -51,3 +51,4 @@ The SampleAPIServer exposes two APIs. You can just the APIs using Postman or in 
     - Method : GET
     - Url : `http://localhost:50616/subscriptions/<your subid>/resourceGroups/<your resource group>/providers/Microsoft.<RPName>/<service>/<your service name>/detectors/<detectorId>`
 
+Note: Make sure to send the entire ARM envelope in the responses. Our blade takes care of stripping it off and reading the embedded data
