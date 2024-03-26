@@ -1,57 +1,71 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using SampleAPIServer.Interfaces;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Azure.Identity;
+using Azure.Core;
 
 namespace SampleAPIServer.Services
 {
     public class TokenService : ITokenService
     {
-        private string authority;
-        private string appId;
-        private string appKey;
-        private string resourceId;
-        private AuthenticationContext authContext;
+        private string msiClientId;
+        private string msiResourceId;
+        private ValueTask<AccessToken> acquireTokenTask;
+        private bool tokenAcquiredAtleastOnce;
+
+        /// <summary>
+        /// Gets AAD issued auth token.
+        /// </summary>
+        public string AuthorizationToken
+        {
+            get; private set;
+        }
 
         public TokenService(IConfiguration configuration)
         {
             LoadConfigurations(configuration);
-            authContext = new AuthenticationContext(authority, true, TokenCache.DefaultShared);
+            GetAccessTokenAsync();
         }
 
-        public async Task<AuthenticationResult> GetAccessTokenAsync()
+        // TODO: Implement token refresh.
+        public async Task GetAccessTokenAsync()
         {
-            AuthenticationResult authResult = null;
 
             try
             {
-                authResult = await authContext.AcquireTokenSilentAsync(resourceId, appId);
+                var tokenCredential = new ManagedIdentityCredential(msiClientId);
+                acquireTokenTask = tokenCredential.GetTokenAsync(
+                                new TokenRequestContext(scopes: new string[] { $"{msiResourceId}/.default" }) { });
+                AccessToken token = await acquireTokenTask;
+                AuthorizationToken = GetAuthTokenFromValueTask(token);
+                tokenAcquiredAtleastOnce = true;
             }
-            catch (AdalException adalException)
+            catch (Exception ex)
             {
-                if (adalException.ErrorCode == AdalError.FailedToAcquireTokenSilently
-                    || adalException.ErrorCode == AdalError.InteractionRequired)
-                {
-                    authResult = await authContext.AcquireTokenAsync(resourceId, new ClientCredential(appId, appKey));
-                }
-                else
-                {
-                    throw;
-                }
+                // TODO: Handle exception
             }
-
-            return authResult;
         }
 
         private void LoadConfigurations(IConfiguration config)
         {
-            authority = config["AADSettings:Authority"].ToString();
-            appId = config["AADSettings:AppId"].ToString();
-            appKey = config["AADSettings:AppKey"].ToString();
-            resourceId = config["AADSettings:ResourceId"].ToString();
+            msiClientId = config["DiagnosticServer:MSIClientId"].ToString();
+            msiResourceId = config["DiagnosticServer:MSIResourceId"].ToString();
+        }
+        public async Task<string> GetAuthorizationTokenAsync()
+        {
+            if (!tokenAcquiredAtleastOnce)
+            {
+                var authResult = await acquireTokenTask;
+                return GetAuthTokenFromValueTask(authResult);
+            }
+
+            return AuthorizationToken;
+        }
+
+        private string GetAuthTokenFromValueTask(AccessToken accessToken)
+        {
+            return $"Bearer {accessToken.Token}";
         }
     }
 }
