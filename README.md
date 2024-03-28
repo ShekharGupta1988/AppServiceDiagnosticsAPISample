@@ -1,5 +1,5 @@
 # App Service Diagnostics API Sample
-This project shows a sample on how to call App service diagnostics APIs using Azure AD App authentication.
+This project shows a sample on how to call App service diagnostics APIs using Managed Service Identity.
 
 ## Getting Started
 
@@ -8,8 +8,7 @@ These instructions will get you a copy of the project up and running on your loc
 ### Prerequisites
 
 - [dotnet core sdk](https://dotnet.microsoft.com/download)
-- Client Cert that is trusted by App services team, (Read instructions on that in the internal wiki), OR
-- AD App with AppId in allowed list by App Services Team. [Learn How to Create an Azure AD App](https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal)
+- MSI with AppId in allowed list by App Services Team. [Learn How to Create User Assigned MSI](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-manage-user-assigned-managed-identities?pivots=identity-mi-methods-azp)
 
 
 ### Building the project
